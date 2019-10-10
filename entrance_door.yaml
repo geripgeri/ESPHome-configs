@@ -4,7 +4,7 @@ esphome:
   board: nodemcuv2
 
 wifi:
-  ssid: !secret wifi_ssid
+  ssid: !secret wifi_ssida
   password: !secret wifi_ssid
 
 # Enable logging
