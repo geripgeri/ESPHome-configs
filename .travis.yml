@@ -1,0 +1,10 @@
+language: python
+services:
+  - docker
+before_install:
+  - mv secrets-example.yaml secrets.yaml
+  - docker pull esphome/esphome
+
+script:
+  - docker run --rm -v "${PWD}":/config -it --entrypoint /usr/bin/find esphome/esphome . -maxdepth 1 -type f -name "*.yaml" -and -not -name "secrets.yaml" -exec esphome {} config \;
+
