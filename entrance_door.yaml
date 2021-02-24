@@ -1,5 +1,8 @@
+substitutions:
+  devicename: entrance_door
+
 esphome:
-  name: entrance_door
+  name: ${devicename}
   platform: ESP8266
   board: nodemcuv2
 
