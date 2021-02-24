@@ -1,0 +1,206 @@
+substitutions:
+  devicename: thermostat
+
+esphome:
+  name: ${devicename}
+  platform: ESP8266
+  board: d1_mini
+
+  on_boot:
+    priority: -10
+    then:
+      - display.page.show: dashboard
+      - delay: 10s
+      - display.page.show: empty
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  manual_ip:
+    static_ip: !secret thermostat_ip
+    gateway: !secret gateway
+    subnet: !secret subnet
+
+logger:
+api:
+ota:
+
+font:
+  - file: "fonts/FiraCode-Regular.ttf"
+    id: my_font
+    size: 19
+    glyphs: ' !"%()+,-.:/0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz°'
+
+i2c:
+  scl: D1
+  sda: D2
+
+dallas:
+  - pin: D3
+    update_interval: 10s
+
+
+display:
+  - platform: ssd1306_i2c
+    model: "SSD1306 128x64"
+    reset_pin: D0
+    address: 0x3C
+    id: my_display
+    pages:
+      - id: dashboard
+        lambda: |-
+          if (id(climate).has_state() == true){
+            it.printf(0, 52, id(my_font), "%.1f web %.1f", id(outside_temperature).state, id(web_temperature).state);
+          }
+          else {
+            it.printf(0, 52, id(my_font), "Failsafe mode!");
+          }
+
+          it.strftime(45, 0, id(my_font), "%H:%M", id(esptime).now());
+          it.printf(15, 30, id(my_font), "%.1f / %.1f", id(inside_temperature).state, id(target_temperature));
+          
+      - id: alarm
+        lambda: |-
+          it.printf(0, 32, id(my_font), "Lock the Door");
+          
+      - id: weather
+        lambda: |-
+          it.printf(0, 10, id(my_font), "Outside: %.1f", id(outside_temperature).state);
+          it.printf(0, 30, id(my_font), "Web: %.1f", id(web_temperature).state);
+          it.printf(0, 55, id(my_font), "%.1f mm", id(precipitation).state);
+
+      - id: empty
+        lambda: |-
+          it.fill(COLOR_OFF);
+
+globals:
+ - id: target_temperature
+   type: float
+   restore_value: no
+   initial_value: '21.0'
+ - id: tolerance
+   type: float
+   restore_value: no
+   initial_value: '0.25'
+
+time:
+  - platform: homeassistant
+    id: esptime
+    on_time:
+      - seconds: 30
+        then:
+          - lambda: |-
+              if (id(climate).has_state() == true && id(climate).state == "heat"){
+                if (id(inside_temperature).state <= id(target_temperature) - id(tolerance)) {
+                  id(heater).turn_on();
+                }
+
+                if(id(inside_temperature).state >= id(target_temperature) + id(tolerance)) {
+                  id(heater).turn_off();
+                }
+                ESP_LOGI("Heating", "Heating: Current temp: %.2f Target temp: %.2f, Heater: %d", id(inside_temperature).state, id(target_temperature), id(heater).state);
+              }
+
+text_sensor:
+  - platform: homeassistant
+    entity_id: binary_sensor.entrance_door_lock
+    id: entrance_door_lock
+    on_value:
+      - if:
+          condition:
+            text_sensor.state:
+              id: entrance_door_lock
+              state: 'on'
+          then:
+          - display.page.show: alarm
+      - if:
+          condition:
+            text_sensor.state:
+              id: entrance_door_lock
+              state: 'off'
+          then:
+          - display.page.show: empty
+
+  - platform: homeassistant
+    entity_id: climate.bedroom
+    id: climate
+
+sensor:
+  - platform: homeassistant
+    entity_id: sensor.bedroom_climate_target_temp
+    id: target_temperature_homeassistant
+    on_value:
+      then:
+        - lambda: |-
+            id(target_temperature) = id(target_temperature_homeassistant).state;
+  - platform: homeassistant
+    entity_id: sensor.yr_temperature
+    id: web_temperature
+  - platform: homeassistant
+    entity_id: sensor.outside_temperature
+    id: outside_temperature
+  - platform: homeassistant
+    entity_id: sensor.yr_precipitation
+    id: precipitation    
+
+  - platform: dallas
+    id: inside_temperature
+    address: 0xF4041672242AFF28
+    accuracy_decimals: 2
+    name: "Thermostat Temperature"
+    on_value:
+      then:
+        - lambda: |-
+            if (id(climate).has_state() == false){
+              if (id(inside_temperature).state <= id(target_temperature) + id(tolerance)) {
+                id(heater).turn_on();
+              }
+  
+              else {
+                id(heater).turn_off();
+              }
+              ESP_LOGW("FAILSAFE", "Failsafe mode activated! Current temp: %.2f Target temp: %.2f, Heater: %d", id(inside_temperature).state, id(target_temperature), id(heater).state);
+            }
+  
+  - platform: wifi_signal
+    name: "WiFi Signal"
+    update_interval: 60s
+  
+  - platform: uptime
+    name: Uptime Sensor
+
+  - platform: template
+    name: "Heater Status"
+    id: heater_template
+    icon: "mdi:radiator"
+    
+binary_sensor:
+  - platform: gpio
+    pin: D5
+    id: button
+    name: "Thermostat Button"
+    on_press:
+      then:
+        - display.page.show: dashboard
+        - delay: 5s
+        - display.page.show: empty
+    on_double_click:
+      min_length: 50ms
+      max_length: 350ms
+      then:
+        - display.page.show: weather
+        - delay: 5s
+        - display.page.show: empty
+
+switch:
+  - platform: gpio
+    pin: D6
+    id: heater
+    on_turn_on:
+      - sensor.template.publish:
+          id: heater_template
+          state: 1
+    on_turn_off:
+      - sensor.template.publish:
+          id: heater_template
+          state: 0
