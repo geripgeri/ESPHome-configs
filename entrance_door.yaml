@@ -31,6 +31,13 @@ binary_sensor:
       inverted: False
     name: "Entrance Door"
     device_class: door
+  - platform: gpio
+    pin:
+      number: D5
+      mode: INPUT_PULLUP
+      inverted: False
+    name: "Entrance Door Lock"
+    device_class: lock
 
 sensor:
   - platform: wifi_signal
