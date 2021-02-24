@@ -1,0 +1,56 @@
+substitutions:
+  devicename: birdhouse
+
+esphome:
+  name: ${devicename}
+  platform: ESP8266
+  board: d1_mini
+
+i2c:
+  sda: D2
+  scl: D1
+  scan: False
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  manual_ip:
+    static_ip: !secret birdhouse_ip
+    gateway: !secret gateway
+    subnet: !secret subnet
+
+# Enable logging
+logger:
+
+
+# Enable Home Assistant API
+api:
+
+ota:
+
+sensor:
+  - platform: wifi_signal
+    name: "WiFi Signal"
+    update_interval: 60s
+
+  - platform: uptime
+    name: Uptime Sensor
+
+  - platform: bh1750
+    name: "Outside Illuminance"
+    address: 0x23
+    update_interval: 60s
+
+  - platform: bmp085
+    address: 0x77
+    temperature:
+      name: "Outside Temperature"
+    pressure:
+      name: "Outside Pressure"
+    update_interval: 60s
+
+binary_sensor:
+  - platform: gpio
+    pin: D7
+    name: "Bird Sensor"
+    device_class: motion
