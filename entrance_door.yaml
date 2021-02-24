@@ -20,9 +20,6 @@ api:
 
 ota:
 
-status_led:
-  pin: D4
-
 dallas:
   - pin: D2
 
