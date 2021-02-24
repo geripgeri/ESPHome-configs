@@ -2,7 +2,7 @@ language: python
 services:
   - docker
 before_install:
-  - mv secrets-example.yaml secrets.yaml
+  - mv secrets-example secrets.yaml
   - docker pull esphome/esphome
 
 script:
