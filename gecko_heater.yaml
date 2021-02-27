@@ -1,0 +1,59 @@
+substitutions:
+  devicename: gecko_heater
+
+esphome:
+  name: ${devicename}
+  platform: ESP8266
+  board: d1_mini
+  on_boot:
+    priority: -10
+    then:
+      - switch.turn_on: heater
+      - delay: 5s
+      - switch.turn_off: heater
+      - delay: 5s
+      - switch.turn_on: heater
+      - delay: 5s
+      - switch.turn_off: heater
+      - switch.turn_on: heater
+      - delay: 5s
+      - switch.turn_off: heater
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  manual_ip:
+    static_ip: !secret gecko_heater_ip
+    gateway: !secret gateway
+    subnet: !secret subnet
+
+dallas:
+  pin: D1
+  update_interval: 10s
+
+# Enable logging
+logger:
+
+# Enable Home Assistant API
+api:
+
+ota:
+
+sensor:
+  - platform: wifi_signal
+    name: "WiFi Signal"
+    update_interval: 60s
+  - platform: uptime
+    name: Uptime Sensor
+
+  - platform: dallas
+    address: "0xF30316729818FF28"
+    name: "Gecko Tank Temperature"
+  - platform: dallas
+    address: 0x3A051672C51FFF28
+    name: "Living room temperature"
+switch:
+  - platform: gpio
+    name: "Gecko heater"
+    pin: D7
+    id: heater
+    restore_mode: ALWAYS_OFF
