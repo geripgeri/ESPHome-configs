@@ -1,0 +1,100 @@
+substitutions:
+  devicename: bathroom_kitchen_switch
+
+esphome:
+  name: ${devicename}
+  platform: ESP8266
+  board: esp01_1m
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  manual_ip:
+    static_ip: !secret bathroom_kitchen_switch_ip
+    gateway: !secret gateway
+    subnet: !secret subnet
+
+# Enable logging
+logger:
+
+# Enable Home Assistant API
+api:
+
+ota:
+
+i2c:
+  sda: GPIO12
+  scl: GPIO14
+
+sensor:
+  - platform: ade7953
+    voltage:
+      name: ${devicename} Voltage
+    current_a:
+      name: ${devicename} Current LED
+    current_b:
+      name: ${devicename} Current Fan
+    active_power_a:
+      name: ${devicename} Active Power LED
+      filters:
+        - multiply: -1
+    active_power_b:
+      name: ${devicename} Active Power Fan
+      filters:
+        - multiply: -1
+    update_interval: 10s
+
+  # NTC Temperature
+  - platform: ntc
+    sensor: temp_resistance_reading
+    name: ${devicename} Temperature
+    unit_of_measurement: "°C"
+    accuracy_decimals: 1
+    icon: "mdi:thermometer"
+    calibration:
+      b_constant: 3350
+      reference_resistance: 10kOhm
+      reference_temperature: 298.15K
+  - platform: resistance
+    id: temp_resistance_reading
+    sensor: temp_analog_reading
+    configuration: DOWNSTREAM
+    resistor: 32kOhm
+  - platform: adc
+    id: temp_analog_reading
+    pin: A0
+
+status_led:
+  pin:
+    number: GPIO0
+    inverted: yes
+
+binary_sensor:
+  - platform: gpio
+    pin:
+      number: GPIO13
+    name: Bathroom switch
+#    on_state:
+#      then:
+#        - switch.toggle: shelly_relay_1
+  - platform: gpio
+    pin:
+      number: GPIO5
+    name: Kitchen switch
+#    on_state:
+#      then:
+#        - switch.toggle: shelly_relay_2
+
+switch:
+  - platform: gpio
+    id: shelly_relay_1
+    name: Bathroom Fan
+    pin: GPIO4
+    icon: "mdi:fan"
+    restore_mode: ALWAYS_OFF
+#  - platform: gpio
+#    id: shelly_relay_2
+#    name: Kitchen LED
+#    pin: GPIO15
+#    icon: "mdi:led-on"
+#    restore_mode: RESTORE_DEFAULT_OFF
