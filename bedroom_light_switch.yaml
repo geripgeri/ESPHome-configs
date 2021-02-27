@@ -1,0 +1,91 @@
+substitutions:
+  devicename: bedroom_light_switch
+
+esphome:
+  name: ${devicename}
+  platform: ESP8266
+  board: esp01_1m
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  manual_ip:
+    static_ip: !secret bedroom_light_switch_ip
+    gateway: !secret gateway
+    subnet: !secret subnet
+
+# Enable logging
+logger:
+
+# Enable Home Assistant API
+api:
+
+ota:
+
+i2c:
+  sda: GPIO12
+  scl: GPIO14
+
+binary_sensor:
+  - platform: gpio
+    pin:
+      number: GPIO13
+    name: "Wall Switch"
+    on_state:
+      then:
+        - switch.toggle: relay
+  - platform: gpio
+    pin:
+      number: GPIO5
+    name: "Wall Switch 2"
+    on_state:
+      then:
+        - switch.toggle: relay
+
+
+sensor:
+  - platform: ntc
+    sensor: resistance_sensor
+    id: temperature
+    name: "Bedroom Light Switch Temperature"
+    unit_of_measurement: "°C"
+    accuracy_decimals: 1
+    icon: mdi:thermometer
+    calibration:
+      b_constant: 3350
+      reference_temperature: 25°C
+      reference_resistance: 10kOhm
+  - platform: adc
+    id: source_sensor
+    pin: A0
+    update_interval: 10s
+  - platform: resistance
+    id: resistance_sensor
+    sensor: source_sensor
+    configuration: DOWNSTREAM
+    resistor: 32kOhm
+  - platform: ade7953
+    voltage:
+      name: "Bedroom Light Switch Voltage"
+    current_a:
+      name: "ADE7953 Current 1"
+    current_b:
+      name: "ADE7953 Current 2"
+    active_power_a:
+      name: "ADE7953 Power 1"
+    active_power_b:
+      name: "ADE7953 Power 2"
+      filters:
+      - multiply: -1.0
+
+status_led:
+  pin:
+    number: GPIO0
+    inverted: yes
+
+switch:
+  - platform: gpio
+    id: relay
+    name: "Bedroom Light Switch Relay"
+    pin: GPIO04
+    restore_mode: ALWAYS_OFF
