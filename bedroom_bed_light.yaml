@@ -1,0 +1,33 @@
+substitutions:
+  devicename: bedroom_bed_light
+
+esphome:
+  name: ${devicename}
+  platform: ESP8266
+  board: d1_mini
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  manual_ip:
+    static_ip: !secret bedroom_bed_light_ip
+    gateway: !secret gateway
+    subnet: !secret subnet
+
+# Enable logging
+logger:
+
+# Enable Home Assistant API
+api:
+
+ota:
+
+light:
+  - platform: monochromatic
+    name: "Bedroom bed Lights"
+    output: output_bed_light
+
+output:
+  - platform: esp8266_pwm
+    id: output_bed_light
+    pin: D5
